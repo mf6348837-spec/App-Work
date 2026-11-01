@@ -12,16 +12,30 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # خطوة فك الضغط الذكية ونقل الملفات للمجلد الرئيسي
-    - name: Unzip Project Files
+    # خطوة فك الضغط والبحث الشامل عن ملفات المشروع ونقلها للمسار الصحيح
+    - name: Unzip and Locate Project Root
       run: |
-        unzip -o glass_notification_project.zip -d ./temp_project
-        if [ -d "./temp_project/glass_notification_project" ]; then
-          mv ./temp_project/glass_notification_project/* ./
-        else
-          mv ./temp_project/* ./
+        unzip -o glass_notification_project.zip -d ./extracted_files
+        
+        # البحث عن المجلد الذي يحتوي على ملف gradlew الحقيقي
+        GRADLEW_PATH=$(find ./extracted_files -name gradlew -type f -print -quit)
+        
+        if [ -z "$GRADLEW_PATH" ]; then
+          echo "❌ خطأ: لم يتم العثور على ملف gradlew في الملف المضغوط!"
+          exit 1
         fi
-        rm -rf temp_project glass_notification_project.zip
+        
+        # الحصول على اسم المجلد الرئيسي للمشروع ونقل محتوياته للمجلد الحالي للسيرفر
+        PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
+        echo "✅ تم العثور على المشروع في المسار: $PROJECT_ROOT"
+        
+        mv "$PROJECT_ROOT"/* ./
+        
+        # نقل الملفات المخفية (مثل .gradle إن وجدت)
+        find "$PROJECT_ROOT" -maxdepth 1 -name ".*" -not -name "." -not -name ".." -exec mv {} ./ \;
+        
+        # تنظيف المجلدات المؤقتة والملف المضغوط لتهيئة بيئة البناء
+        rm -rf extracted_files glass_notification_project.zip
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
