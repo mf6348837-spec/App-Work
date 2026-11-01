@@ -12,10 +12,16 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    # خطوة فك الضغط الذكية ونقل الملفات للمجلد الرئيسي
     - name: Unzip Project Files
       run: |
-        unzip -o glass_notification_project.zip -d ./
-        rm glass_notification_project.zip
+        unzip -o glass_notification_project.zip -d ./temp_project
+        if [ -d "./temp_project/glass_notification_project" ]; then
+          mv ./temp_project/glass_notification_project/* ./
+        else
+          mv ./temp_project/* ./
+        fi
+        rm -rf temp_project glass_notification_project.zip
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -23,7 +29,6 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # هذه الخطوة تقوم بإصلاح مستودعات البحث وتجبر السيرفر على استخدام مستودع جوجل الرسمي لتطوير الأندرويد
     - name: Inject Google Repositories into Settings
       run: |
         if [ -f "settings.gradle" ]; then
@@ -32,6 +37,9 @@ jobs:
           cat settings.gradle >> temp_settings.gradle
           mv temp_settings.gradle settings.gradle
         fi
+
+    - name: Fix Permissions for Gradlew
+      run: chmod +x gradlew
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
