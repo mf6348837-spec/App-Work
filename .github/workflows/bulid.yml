@@ -23,11 +23,21 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    # هذه الخطوة تقوم بإصلاح مستودعات البحث وتجبر السيرفر على استخدام مستودع جوجل الرسمي لتطوير الأندرويد
+    - name: Inject Google Repositories into Settings
+      run: |
+        if [ -f "settings.gradle" ]; then
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > temp_settings.gradle
+          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> temp_settings.gradle
+          cat settings.gradle >> temp_settings.gradle
+          mv temp_settings.gradle settings.gradle
+        fi
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
     - name: Build Android APK
-      run: gradle assembleDebug
+      run: ./gradlew assembleDebug --no-daemon
 
     - name: Upload Generated APK
       uses: actions/upload-artifact@v4
